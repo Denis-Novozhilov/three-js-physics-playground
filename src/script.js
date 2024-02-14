@@ -386,6 +386,44 @@ debugObject.SPHERE_RANDOM = () => {
 		z: (Math.random() - 0.5) * 10
 	});
 };
+debugObject.shutAtOnce = () => {
+	/**
+	 * Shuting
+	 */
+	console.log(`Shuting`);
+	// Создаем куб (ваш объект)
+	const cubeBulletGeometry = new THREE.BoxGeometry();
+	const cubeBulletMaterial = new THREE.MeshBasicMaterial({ color: 0xcb91f3 });
+	const cubeBulletMesh = new THREE.Mesh(cubeBulletGeometry, cubeBulletMaterial);
+	// Создаем физическое тело для куба
+	const cubeBulletShape = new CANNON.Box(new CANNON.Vec3(1, 1, 1));
+	const cubeBulletBody = new CANNON.Body({ mass: 1, shape: cubeBulletShape });
+
+	const shotSpeed = 100; // Скорость выстрела (в данном случае, 100 единиц в секунду)
+
+	// Устанавливаем начальное положение объекта в центр экрана
+	// cubeBulletBody.position.copy({ ...camera.position, y: camera.position});
+	cubeBulletBody.position.copy({ ...camera.position, y: camera.position.y - 2 });
+	// cubeBulletBody.position.copy(camera.position);
+	// cubeBulletBody.position.copy({ ...camera.position, y: --camera.position });
+	cubeBulletMesh.position.copy(cubeBulletBody.position);
+	cubeBulletMesh.quaternion.copy(cubeBulletBody.quaternion);
+
+	// object.mesh.position.copy(object.body.position);
+	// object.mesh.quaternion.copy(object.body.quaternion);
+
+	// Получаем направление взгляда камеры
+	const direction = new THREE.Vector3(0, 0, -1);
+	camera.getWorldDirection(direction);
+
+	// Устанавливаем начальную скорость объекта
+	const shotVelocity = direction.multiplyScalar(shotSpeed);
+	cubeBulletBody.velocity.copy(new CANNON.Vec3(shotVelocity.x, shotVelocity.y, shotVelocity.z));
+
+	scene.add(cubeBulletMesh);
+	world.addBody(cubeBulletBody);
+	objectsToUpdate.push({ mesh: cubeBulletMesh, body: cubeBulletBody });
+};
 // gui.add(debugObject, 'createHugeHighTower');
 cameraGUI.add(debugObject, 'CAMERA_STOP_MOVING');
 cameraGUI.add(debugObject, 'CAMERA_MOVE_SPIN');
@@ -579,7 +617,8 @@ window.addEventListener('resize', () => {
  */
 // Base camera
 const camera = new THREE.PerspectiveCamera(95, sizes.width / sizes.height, 0.01, 2000);
-camera.position.set(-5, 70, 90);
+// camera.position.set(-5, 70, 90);
+camera.position.set(-5, 10, 20);
 // camera.lookAt(new THREE.Vector3(10, 5, 0));
 scene.add(camera);
 
@@ -875,9 +914,20 @@ const handleKeyDown = (event) => {
 	if (event.altKey && event.key === 'C') {
 		debugObject.SCENE_CLEAR_CENTER();
 	}
+	if (event.code === 'Space') {
+		debugObject.shutAtOnce();
+	}
 
 	document.body.focus();
 };
 
 document.body.setAttribute('tabindex', '1');
 window.document.addEventListener('keydown', handleKeyDown);
+
+const shotBtn = document.querySelector('.shotBtn');
+shotBtn.addEventListener('click', debugObject.shutAtOnce);
+
+debugObject.CUBE_WALL_SMALL_10x10();
+setTimeout(() => {
+	debugObject.WORLD_FREEZE();
+}, 400);
