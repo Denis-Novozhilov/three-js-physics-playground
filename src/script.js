@@ -435,12 +435,13 @@ const groundTexture2 = textureLoader.load(import('/assets/ground.jpg'));
 console.log(`groundTexture2`);
 console.log(groundTexture2);
 
-const imgTest = import('/assets/ground.jpg');
-console.log('imgTest');
-console.log(imgTest);
-const imgTest2 = import('/assets/ground.jpg');
-console.log('imgTest2');
-console.log(imgTest2);
+// const imgTest = import('/assets/ground.jpg');
+// console.log('imgTest');
+// console.log(imgTest);
+// const imgTest2 = import('/assets/ground.jpg');
+// console.log('imgTest2');
+// console.log(imgTest2);
+
 // const environmentMapTexture = cubeTextureLoader.load([
 // 	'/textures/environmentMaps/0/px.png',
 // 	'/textures/environmentMaps/0/nx.png',
