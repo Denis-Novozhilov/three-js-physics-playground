@@ -427,15 +427,15 @@ const scene = new THREE.Scene();
 const textureLoader = new THREE.TextureLoader();
 const cubeTextureLoader = new THREE.CubeTextureLoader();
 
-const groundTexture = textureLoader.load('/crash-test-img.jpg');
+const groundTexture = textureLoader.load('/public/crash-test-img.jpg');
 console.log(`groundTexture`);
 console.log(groundTexture);
 
-const groundTexture2 = textureLoader.load(import('/crash-test-img.jpg'));
+const groundTexture2 = textureLoader.load(import('/public/crash-test-img.jpg'));
 console.log(`groundTexture2`);
 console.log(groundTexture2);
 
-const imgTest = import('/crash-test-img.jpg');
+const imgTest = import('/public/crash-test-img.jpg');
 console.log('imgTest');
 console.log(imgTest);
 // const environmentMapTexture = cubeTextureLoader.load([
