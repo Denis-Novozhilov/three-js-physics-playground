@@ -870,7 +870,7 @@ const tick = () => {
 		object.mesh.quaternion.copy(object.body.quaternion);
 	}
 
-	floor.position.copy(floorBody.position);
+	floor.position.copy({ ...floorBody.position, y: floorBody.position.y - 0.08 });
 	controls.update();
 
 	// Render
