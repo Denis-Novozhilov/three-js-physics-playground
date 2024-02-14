@@ -427,13 +427,9 @@ const scene = new THREE.Scene();
 const textureLoader = new THREE.TextureLoader();
 const cubeTextureLoader = new THREE.CubeTextureLoader();
 
+// const groundTexture = textureLoader.load('/assets/ground.jpg');
 const groundTexture = textureLoader.load('/assets/ground.jpg');
-console.log(`groundTexture`);
-console.log(groundTexture);
-
-const groundTexture2 = textureLoader.load(import('/assets/ground.jpg'));
-console.log(`groundTexture2`);
-console.log(groundTexture2);
+const gridTexture = textureLoader.load('/assets/grid-edited.jpg');
 
 // const imgTest = import('/assets/ground.jpg');
 // console.log('imgTest');
@@ -477,126 +473,66 @@ const playHitSound = (collision) => {
 };
 
 // Physics Materials
-// const concreteMaterial = new CANNON.Material('concrete');
-// const plasticMaterial = new CANNON.Material('plastic');
-
-// const concretePlasticContactMaterial = new CANNON.ContactMaterial(
-// 	concreteMaterial,
-// 	plasticMaterial,
-// 	{
-// 		friction: 0.1,
-// 		restitution: 0.7
-// 	}
-// );
-// world.addContactMaterial(concretePlasticContactMaterial);
 const defaultMaterial = new CANNON.Material('default');
 const defaultContactMaterial = new CANNON.ContactMaterial(defaultMaterial, defaultMaterial, {
 	friction: 0.3,
-	// friction: 0.5,
 	restitution: 0.7
-	// restitution: 0.7
-	// restitution: 0.2
-	// restitution: 1
-	// restitution: 0.001
 });
 world.addContactMaterial(defaultContactMaterial);
 world.defaultContactMaterial = defaultContactMaterial;
-
-// // Physics Sphere
-// const sphereShape = new CANNON.Sphere(0.5);
-// const sphereBody = new CANNON.Body({
-// 	mass: 1,
-// 	position: new CANNON.Vec3(0, 3, 0),
-// 	shape: sphereShape
-// 	// material: plasticMaterial
-// 	// material: defaultMaterial
-// });
-// sphereBody.applyLocalForce(new CANNON.Vec3(50, 0, 0), new CANNON.Vec3(0, 0, 0));
-// world.addBody(sphereBody);
 
 //Floor
 const floorShape = new CANNON.Plane();
 const floorBody = new CANNON.Body();
 floorBody.mass = 0;
 floorBody.position = new CANNON.Vec3(0, 0, 0);
-// floorBody.material = defaultMaterial;
 floorBody.addShape(floorShape);
-// floorBody.quaternion.setFromEuler((Math.PI * 0.5) / -1.2, 0, 0);
 floorBody.quaternion.setFromEuler((Math.PI * 0.5) / -1, 0, 0);
 world.addBody(floorBody);
-
-// console.log(floorBody.quaternion.toEuler);
-// console.log(floorBody.quaternion.toEuler);
-
-/**
- * Test sphere
- */
-// const sphere = new THREE.Mesh(
-// 	new THREE.SphereGeometry(0.5, 32, 32),
-// 	new THREE.MeshStandardMaterial({
-// 		metalness: 0.3,
-// 		roughness: 0.4,
-// 		envMap: environmentMapTexture,
-// 		envMapIntensity: 0.5
-// 	})
-// );
-// sphere.castShadow = true;
-// sphere.position.y = 0.5;
-// scene.add(sphere);
 
 /**
  * Floor
  */
-const floor = new THREE.Mesh(
-	new THREE.PlaneGeometry(70, 70),
-	new THREE.MeshStandardMaterial({
-		color: '#777777',
-		metalness: 0.3,
-		roughness: 0.4,
-		map: groundTexture,
-		transparent: true,
-		alphaMap: groundTexture,
-		opacity: 2
-		// wireframe: true
-		// envMap: environmentMapTexture,
-		// envMapIntensity: 0.5
-	})
-);
+
+const floorMaterial2 = new THREE.ShaderMaterial({
+	uniforms: {
+		mainTexture: { value: gridTexture },
+		secondTexture: { value: groundTexture }
+	},
+	vertexShader: `
+    varying vec2 vUv;
+    varying vec2 vUv2;
+    void main() {
+      vUv = uv * 50.0 + vec2(0.255); 
+      vUv2 = uv * 8.0 - vec2(3.5); 
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+
+  `,
+	fragmentShader: `
+    uniform sampler2D mainTexture;
+    uniform sampler2D secondTexture;
+    varying vec2 vUv;
+    varying vec2 vUv2;
+    void main() {
+      vec4 color1 = texture2D(mainTexture, vUv);
+      vec4 color2 = texture2D(secondTexture, vUv2);
+      gl_FragColor = mix(color1, color2, 0.6); 
+    }
+  `
+});
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), floorMaterial2);
+gridTexture.repeat.set(50, 50);
+gridTexture.wrapS = THREE.RepeatWrapping;
+gridTexture.wrapT = THREE.RepeatWrapping;
+
 floor.receiveShadow = false;
 floor.rotation.x = -Math.PI * 0.5;
-// floor.rotation.x = -Math.PI;
-//
+
 floor.position.copy(floorBody.position);
-// !!!
-// floor.quaternion.setFromAxisAngle(new THREE.Vector3(-1.099999, 0, 0), Math.PI * 0.5);
-// !!!
-// floor.quaternion.setFromAxisAngle(new THREE.Vector3(-1.099999, 0, 0), Math.PI * 0.5);
 floor.quaternion.copy(floorBody.quaternion);
-// floor.quaternion.copy(floorBody.quaternion, 'YZX');
-// Получаем углы Эйлера из кватерниона floorBody.quaternion
-// var euler = new THREE.Euler();
-// euler.setFromQuaternion(floorBody.quaternion, 'XYZ'); // Используем порядок осей, который соответствует вашим требованиям
 
-// Устанавливаем углы Эйлера для floor
-// floor.rotation.set(euler.x, euler.y, euler.z);
-// floor.rotation.set(euler.x, euler.y, euler.z);
-// floor.quaternion.copy(euler.x, euler.y, euler.z);
-
-// var euler = new THREE.Euler();
-// euler.setFromQuaternion(floorBody.quaternion);
-// Устанавливаем новый кватернион для floorBody, используя углы Эйлера
-// floor.quaternion.setFromEuler(euler);
-// floor.quaternion.copy(new THREE.Vector3(-1.2, 0, 0));
-// const initialFloorRotation = new CANNON.Quaternion();
-// floor.quaternion.copy(floorBody.quaternion);
-
-// var euler = new THREE.Euler();
-// euler.setFromQuaternion(floor.quaternion, 'XYZ');
-// Устанавливаем новый кватернион для floorBody, используя углы Эйлера
-// floorBody.quaternion.setFromEuler(euler);
-
-// floor.rotation.setFromQuaternion(initialFloorRotation);
-// floor.rotation.setFromQuaternion(floorBody.quaternion, 'XYZ');
 scene.add(floor);
 
 /**
