@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import GUI from 'lil-gui';
 import CANNON from 'cannon';
 import gsap from 'gsap';
+import { debounce } from './helpers/debounce';
 
 /**
  * Debug
@@ -13,7 +14,20 @@ const cameraGUI = gui.addFolder('Camera');
 const sceneGUI = gui.addFolder('Scene');
 const objectsGUI = gui.addFolder('Objects');
 const worldGUI = gui.addFolder('World');
+const objectsToUpdate = [];
+const Store = {
+	objectsExisted: []
+};
+
+const lockForSecond = (btn) => {
+	btn.disable();
+	setTimeout(() => {
+		btn.enable();
+	}, 1000);
+};
+
 debugObject.SCENE_CLEAR_CENTER = () => {
+	document.body.focus();
 	for (let i = 0; i < 5; i++) {
 		objectsToUpdate.forEach((obj) => {
 			// Проверка координат объекта
@@ -46,14 +60,6 @@ debugObject.SCENE_CLEAR_CENTER = () => {
 				// obj.body.removeEventListener('collide', playHitSound)
 				world.remove(obj.body);
 
-				// Освобождение ресурсов CANNON.js Body
-				// obj.body.shapes.forEach((shape) => {
-				// 	world.removeShape(shape);
-				// });
-				// if (obj.body.material) {
-				// 	world.removeMaterial(obj.body.material);
-				// }
-
 				// Удаляем объект из массива objectsToUpdate
 				const index = objectsToUpdate.indexOf(obj);
 				if (index !== -1) {
@@ -67,6 +73,7 @@ debugObject.SCENE_CLEAR_CENTER = () => {
 };
 
 debugObject.SCENE_CLEAR_ALL = () => {
+	document.body.focus();
 	objectsToUpdate.forEach((obj) => {
 		// Удаление из Three.js сцены
 		scene.remove(obj.mesh);
@@ -82,31 +89,23 @@ debugObject.SCENE_CLEAR_ALL = () => {
 			obj.mesh.material.dispose();
 		}
 
-		// Удаление из CANNON.js мира
-		// удаление слушателей событий
-		// obj.body.removeEventListener('collide', playHitSound)
 		world.remove(obj.body);
-
-		// Освобождение ресурсов CANNON.js Body
-		// obj.body.shapes.forEach((shape) => {
-		// 	world.removeShape(shape);
-		// });
-		// if (obj.body.material) {
-		// 	world.removeMaterial(obj.body.material);
-		// }
 	});
 
 	// Очистка массива objectsToUpdate
 	objectsToUpdate.length = 0;
+	Store.objectsExisted.length = 0;
 };
-debugObject.WORLD_SLEEP_FOR_1SEC = () => {
-	debugObject.WORLD_FREEZE();
-	setTimeout(() => {
-		world.allowSleep = false;
-	}, 1000);
-	// world.pause();
-};
+// debugObject.WORLD_SLEEP_FOR_1SEC = () => {
+// 	debugObject.WORLD_FREEZE();
+// 	setTimeout(() => {
+// 		world.allowSleep = false;
+// 	}, 1000);
+// 	// world.pause();
+// };
+
 debugObject.WORLD_FREEZE = () => {
+	document.body.focus();
 	world.allowSleep = true;
 	objectsToUpdate.forEach(({ body }) => {
 		if (!body.customData) {
@@ -122,11 +121,17 @@ debugObject.WORLD_FREEZE = () => {
 	});
 	// world.pause();
 };
-debugObject.WORLD_DENY_SLEEP = () => {
-	world.allowSleep = false;
-	// world.unpause();
+debugObject.AWAIT_WORLD_FREEZE = (dely) => {
+	setTimeout(() => {
+		debugObject.WORLD_FREEZE();
+	}, dely);
 };
+// debugObject.WORLD_DENY_SLEEP = () => {
+// 	world.allowSleep = false;
+// 	// world.unpause();
+// };
 debugObject.WORLD_WAKE_UP_CALM = () => {
+	document.body.focus();
 	world.allowSleep = false;
 	// world.wakeUpAll();
 	objectsToUpdate.forEach((obj) => {
@@ -136,6 +141,7 @@ debugObject.WORLD_WAKE_UP_CALM = () => {
 	// world.unpause();
 };
 debugObject.WORLD_WAKE_UP_ACTIVE = () => {
+	document.body.focus();
 	world.allowSleep = false;
 	// world.wakeUpAll();
 	objectsToUpdate.forEach(({ body }) => {
@@ -155,51 +161,57 @@ debugObject.WORLD_WAKE_UP_ACTIVE = () => {
 };
 
 debugObject.CAMERA_STOP_MOVING = () => {
+	document.body.focus();
 	gsap.killTweensOf(camera.position);
 };
 debugObject.CAMERA_MOVE_SPIN = () => {
+	document.body.focus();
 	debugObject.CAMERA_STOP_MOVING();
 	animateCameraSpiral1();
 };
 debugObject.CAMERA_MOVE_SPIN_CLOSE = () => {
+	document.body.focus();
 	debugObject.CAMERA_STOP_MOVING();
 	animateCameraSpiral1(2);
 };
-debugObject.SPHERE_VERTICAL_LINE = () => {
-	for (let i = 0.5; i < 10.5; i++) {
-		createSphere(0.5, { x: 0, y: i, z: 0 });
-	}
-};
-debugObject.CUBE_WALL_EXPLOSION_BIG = () => {
-	let count = 0;
-	let int = setInterval(() => {
-		if (count === 8) {
-			clearInterval(int);
-		}
-		count += 1;
-		for (let i = -5; i < 5; i++) {
-			for (let j = 1; j < 11; j++) {
-				createCube(1, 1, 1, { x: i, y: j, z: 0 });
-			}
-		}
-	}, 50);
-};
+// debugObject.SPHERE_VERTICAL_LINE = () => {
+// 	for (let i = 0.5; i < 10.5; i++) {
+// 		createSphere(0.5, { x: 0, y: i, z: 0 });
+// 	}
+// };
+// debugObject.CUBE_WALL_EXPLOSION_BIG = () => {
+// 	let count = 0;
+// 	let int = setInterval(() => {
+// 		if (count === 8) {
+// 			clearInterval(int);
+// 		}
+// 		count += 1;
+// 		for (let i = -5; i < 5; i++) {
+// 			for (let j = 1; j < 11; j++) {
+// 				createCube(1, 1, 1, { x: i, y: j, z: 0 });
+// 			}
+// 		}
+// 	}, 50);
+// };
 debugObject.CUBE_WALL_MEDIUM = () => {
-	let count = 0;
+	document.body.focus();
+	debugObject.SCENE_CLEAR_ALL();
 
-	for (let k = -1; k < 2; k++) {
-		for (let i = -20; i < 20; i++) {
+	for (let k = -1; k < 0; k++) {
+		for (let i = -15; i < 15; i++) {
 			for (let j = 0.5; j < 10.5; j++) {
 				createCube(1, 1, 1, { x: i, y: j, z: k });
 			}
 		}
 	}
+	debugObject.AWAIT_WORLD_FREEZE(100);
 };
-debugObject.CUBE_WALL_EXPLOSION_MEDIUM = () => {
-	// for (let n = 0; n < 4; n++) {
+debugObject.CUBE_WALL_EXPLOSION = () => {
+	document.body.focus();
+	debugObject.SCENE_CLEAR_ALL();
 	let count = 0;
 	let int = setInterval(() => {
-		if (count === 4) {
+		if (count === 3) {
 			clearInterval(int);
 		}
 		count += 1;
@@ -209,113 +221,88 @@ debugObject.CUBE_WALL_EXPLOSION_MEDIUM = () => {
 			}
 		}
 	}, 50);
-	// }
 	gui.close();
 };
 
-debugObject.createHugeHighTower = () => {
-	const count = 10;
-	// for (let k = -1; k < 1; k++) {
-	for (let i = -count / 2; i < count / 2; i++) {
-		for (let k = -count / 2; k < count / 2; k++) {
-			// let firstFlag = true;
-			// let defDelta = count / 10000;
-			// let defDelta = 1;
-			for (let j = 0; j < count * 3; j++) {
-				// createCube(0.998, 0.998, 0.998, { x: i, y: j, z: k });
-				// createCube(0.998, 0.998, 0.998, { x: 0, y: j, z: 0 });
-				// if (firstFlag) {
-				// firstFlag = false;
-				createCube(1, 1, 1, { x: i, y: j + 0.5, z: k });
-				// defDelta += defDelta;
-				// } else {
-				// createCube(1, 1, 1, { x: 0, y: j + 2.6, z: 0 });
-			}
-		}
-	}
-	// }
-	// for (let i = -5; i < 5; i++) {
-	// 	for (let j = 11; j < 21; j++) {
-	// 		createCube(0.5, 0.5, { x: i, y: j, z: 0 });
-	// 	}
-	// }
-};
+// debugObject.createHugeHighTower = () => {
+// 	document.body.focus();
+// 	debugObject.SCENE_CLEAR_ALL();
+// 	const count = 5;
+// 	// for (let k = -1; k < 1; k++) {
+// 	for (let i = -count / 2; i < count / 2; i++) {
+// 		for (let k = -count / 2; k < count / 2; k++) {
+// 			// let firstFlag = true;
+// 			// let defDelta = count / 10000;
+// 			// let defDelta = 1;
+// 			for (let j = 0; j < count * 3; j++) {
+// 				// createCube(0.998, 0.998, 0.998, { x: i, y: j, z: k });
+// 				// createCube(0.998, 0.998, 0.998, { x: 0, y: j, z: 0 });
+// 				// if (firstFlag) {
+// 				// firstFlag = false;
+// 				createCube(1, 1, 1, { x: i, y: j + 0.5, z: k });
+// 				// defDelta += defDelta;
+// 				// } else {
+// 				// createCube(1, 1, 1, { x: 0, y: j + 2.6, z: 0 });
+// 			}
+// 		}
+// 	}
+// 	// }
+// 	// for (let i = -5; i < 5; i++) {
+// 	// 	for (let j = 11; j < 21; j++) {
+// 	// 		createCube(0.5, 0.5, { x: i, y: j, z: 0 });
+// 	// 	}
+// 	// }
+// 	debugObject.AWAIT_WORLD_FREEZE(100);
+// };
 debugObject.CUBE_TOWER_TO_THE_MOON = () => {
-	const count = 16;
+	document.body.focus();
+	debugObject.SCENE_CLEAR_ALL();
+	const count = 10;
 	for (let i = -count / 16; i < count / 16; i++) {
 		for (let k = -count / 16; k < count / 16; k++) {
 			for (let j = 0; j < count * 20; j++) {
-				createCube(0.98, 0.98, 0.98, { x: i, y: j + 0.5, z: k });
+				createCube(1, 1, 1, { x: i, y: j + 0.5, z: k });
 			}
 		}
 	}
+	debugObject.AWAIT_WORLD_FREEZE(100);
 };
 debugObject.CUBE_ROTATED_STACK_BIG = () => {
-	const count_1 = 12;
+	document.body.focus();
+	debugObject.SCENE_CLEAR_ALL();
+	const count_1 = 10;
 	const factor = 8;
 
-	for (let g = 0; g < count_1 * 10; g++) {
+	for (let g = 0; g < count_1 * 7; g++) {
 		createRotatedCube(5 * factor, 1, 5 * factor, {
 			x: 0,
-			y: g * 2 + 0.5,
+			y: g,
 			z: 0
 		});
 	}
+	debugObject.AWAIT_WORLD_FREEZE(100);
 };
 debugObject.CUBE_ROTATED_STACK_MEDIUM = () => {
-	// const count_1 = 10;
-	// const count_2 = 8;
-	// const count_3 = 6;
-	// const factor = 6;
-	// const count_1 = 8;
-	const count_1 = 10;
+	debugObject.SCENE_CLEAR_ALL();
+	const count_1 = 8;
 	const count_2 = 6;
 	const count_3 = 4;
 	const factor = 6;
 	const factor2 = 1.2;
 	const heightShift = 0.5;
 
-	for (let g = 0; g < count_1 * 10; g++) {
+	for (let g = 0; g < count_1 * 7; g++) {
 		createRotatedCube(5 * factor, 2, 5 * factor, {
 			x: 0,
 			y: g * 2 + 0.5,
 			z: 0
 		});
 	}
-	// for (let _x = -1; _x < 2; _x++) {
-	// 	for (let _z = -1; _z < 2; _z++) {
-	// 		for (let _y = 0; _y < count_1; _y++) {
-	// 			createCube(1 * factor * 1.2, 1, 1 * factor * 1.2, {
-	// 				x: _x * 1.2 * factor * 1.2,
-	// 				y: _y * 1 + 0.5 + 1.5 + count_1,
-	// 				z: _z * 1.2 * factor * 1.2
-	// 			});
-	// 		}
-	// 	}
-	// }
-	// createCube(5 * factor, 1, 5 * factor, {
-	// 	x: 0,
-	// 	y: count_1 + count_1 + 2,
-	// 	z: 0
-	// });
-	// for (let _x = -1; _x < 2; _x++) {
-	// 	for (let _z = -1; _z < 2; _z++) {
-	// 		for (let _y = 0; _y < count_1; _y++) {
-	// 			createCube(1 * factor * 1.2, 1, 1 * factor * 1.2, {
-	// 				x: _x * 1.2 * factor * 1.2,
-	// 				y: _y * 1 + count_1 + count_1 + 2,
-	// 				z: _z * 1.2 * factor * 1.2
-	// 			});
-	// 		}
-	// 	}
-	// }
-	// createCube(5 * factor, 1, 5 * factor, {
-	// 	x: 0,
-	// 	y: count_1 + count_1 + count_1 + 3,
-	// 	z: 0
-	// });
+	debugObject.AWAIT_WORLD_FREEZE(100);
 };
 debugObject.CUBE_LITTLE_TOWER = () => {
+	document.body.focus();
+	debugObject.SCENE_CLEAR_ALL();
 	for (let k = -2; k < 2; k++) {
 		for (let i = -2; i < 2; i++) {
 			for (let j = 0.5; j < 26.5; j++) {
@@ -323,8 +310,11 @@ debugObject.CUBE_LITTLE_TOWER = () => {
 			}
 		}
 	}
+	debugObject.AWAIT_WORLD_FREEZE(100);
 };
 debugObject.CUBE_BOX_BUILDING = () => {
+	document.body.focus();
+	debugObject.SCENE_CLEAR_ALL();
 	for (let k = -5; k < 5; k++) {
 		for (let i = -5; i < 5; i++) {
 			for (let j = 0.5; j < 6.5; j++) {
@@ -332,97 +322,99 @@ debugObject.CUBE_BOX_BUILDING = () => {
 			}
 		}
 	}
-	// for (let i = -5; i < 5; i++) {
-	// 	for (let j = 11; j < 21; j++) {
-	// 		createCube(0.5, 0.5, { x: i, y: j, z: 0 });
-	// 	}
-	// }
+	debugObject.AWAIT_WORLD_FREEZE(100);
 };
-debugObject.CUBE_WALL_SMALL_6x10 = () => {
-	// for (let k = -5; k < 5; k++) {
-	for (let i = -5; i < 5; i++) {
-		for (let j = 0.5; j < 6.5; j++) {
-			createCube(0.988, 0.988, 0.988, { x: i, y: j, z: 0 });
-		}
-	}
-	// }
-	// for (let i = -5; i < 5; i++) {
-	// 	for (let j = 11; j < 21; j++) {
-	// 		createCube(0.5, 0.5, { x: i, y: j, z: 0 });
-	// 	}
-	// }
-};
-debugObject.CUBE_WALL_SMALL_10x10 = () => {
-	for (let i = -5; i < 5; i++) {
-		for (let j = 1; j < 11; j++) {
+// debugObject.CUBE_WALL_SMALL_6x10 = () => {
+// 	// for (let k = -5; k < 5; k++) {
+// 	for (let i = -5; i < 5; i++) {
+// 		for (let j = 0.5; j < 6.5; j++) {
+// 			createCube(0.988, 0.988, 0.988, { x: i, y: j, z: 0 });
+// 		}
+// 	}
+// 	// }
+// 	// for (let i = -5; i < 5; i++) {
+// 	// 	for (let j = 11; j < 21; j++) {
+// 	// 		createCube(0.5, 0.5, { x: i, y: j, z: 0 });
+// 	// 	}
+// 	// }
+// };
+debugObject.CUBE_WALL_SMALL_20x20 = () => {
+	document.body.focus();
+	debugObject.SCENE_CLEAR_ALL();
+
+	for (let i = -10; i < 10; i++) {
+		for (let j = 1; j < 21; j++) {
 			createCube(1, 1, 1, { x: i, y: j, z: 0 });
 		}
 	}
-	// for (let i = -5; i < 5; i++) {
-	// 	for (let j = 11; j < 21; j++) {
-	// 		createCube(0.5, 0.5, { x: i, y: j, z: 0 });
-	// 	}
-	// }
+	debugObject.AWAIT_WORLD_FREEZE(100);
 };
-debugObject.SPHERE_WALL_10x20 = () => {
+debugObject.CUBE_WALL_SMALL_10x10 = () => {
+	document.body.focus();
+	debugObject.SCENE_CLEAR_ALL();
+
 	for (let i = -5; i < 5; i++) {
-		for (let j = 0.5; j < 20.5; j++) {
-			createSphere(0.5, { x: i, y: j, z: 0 });
+		for (let j = 0.5; j < 10 + 0.5; j++) {
+			createCube(1, 1, 1, { x: i, y: j, z: 0 });
 		}
 	}
-	// for (let i = -5; i < 5; i++) {
-	// 	for (let j = 11; j < 21; j++) {
-	// 		createSphere(0.5, { x: i, y: j, z: 0 });
-	// 	}
-	// }
+	debugObject.AWAIT_WORLD_FREEZE(100);
 };
-debugObject.SPHERE_ABOVE_CENTER = () => {
-	createSphere(0.5, { x: 0, y: 4, z: 0 });
-};
+
 debugObject.SPHERE_RANDOM = () => {
+	document.body.focus();
 	createSphere(Math.random() * 0.5 * 5 + 0.5, {
 		x: (Math.random() - 0.5) * 10,
 		y: 3,
 		z: (Math.random() - 0.5) * 10
 	});
 };
-debugObject.shutAtOnce = () => {
-	/**
-	 * Shuting
-	 */
-	console.log(`Shuting`);
-	// Создаем куб (ваш объект)
-	const cubeBulletGeometry = new THREE.BoxGeometry();
-	const cubeBulletMaterial = new THREE.MeshBasicMaterial({ color: 0xcb91f3 });
-	const cubeBulletMesh = new THREE.Mesh(cubeBulletGeometry, cubeBulletMaterial);
-	// Создаем физическое тело для куба
-	const cubeBulletShape = new CANNON.Box(new CANNON.Vec3(1, 1, 1));
-	const cubeBulletBody = new CANNON.Body({ mass: 1, shape: cubeBulletShape });
 
-	const shotSpeed = 100; // Скорость выстрела (в данном случае, 100 единиц в секунду)
+const cubeBulletSize = [1, 1, 1];
+const sphereBulletRadius = 2;
+const cubeBulletGeometry = new THREE.BoxGeometry(...cubeBulletSize);
+const cubeBulletMaterial = new THREE.MeshBasicMaterial({ color: 0xcb91f3 });
+const sphereBulletGeometry = new THREE.SphereGeometry(2);
+const sphereBulletMaterial = new THREE.MeshBasicMaterial({ color: 0xf85547 });
+const bulletDirection = new THREE.Vector3(0, 0, -1);
+const sphereBulletShape = new CANNON.Sphere(sphereBulletRadius);
+const cubeBulletShape = new CANNON.Box(new CANNON.Vec3(...cubeBulletSize));
+
+const takeShot = (shape = 'CUBE', shotSpeed = 100, correctionY = -2) => {
+	let bulletMesh;
+	let bulletBody;
+
+	if (shape === 'CUBE') {
+		bulletMesh = new THREE.Mesh(cubeBulletGeometry, cubeBulletMaterial);
+		bulletBody = new CANNON.Body({ mass: 1, shape: cubeBulletShape });
+	}
+	if (shape === 'SPHERE') {
+		bulletMesh = new THREE.Mesh(sphereBulletGeometry, sphereBulletMaterial);
+		bulletBody = new CANNON.Body({ mass: 1, shape: sphereBulletShape });
+	}
 
 	// Устанавливаем начальное положение объекта в центр экрана
-	// cubeBulletBody.position.copy({ ...camera.position, y: camera.position});
-	cubeBulletBody.position.copy({ ...camera.position, y: camera.position.y - 2 });
-	// cubeBulletBody.position.copy(camera.position);
-	// cubeBulletBody.position.copy({ ...camera.position, y: --camera.position });
-	cubeBulletMesh.position.copy(cubeBulletBody.position);
-	cubeBulletMesh.quaternion.copy(cubeBulletBody.quaternion);
-
-	// object.mesh.position.copy(object.body.position);
-	// object.mesh.quaternion.copy(object.body.quaternion);
+	bulletBody.position.copy({ ...camera.position, y: camera.position.y + correctionY });
+	bulletMesh.position.copy(bulletBody.position);
+	bulletMesh.quaternion.copy(bulletBody.quaternion);
 
 	// Получаем направление взгляда камеры
-	const direction = new THREE.Vector3(0, 0, -1);
-	camera.getWorldDirection(direction);
+	camera.getWorldDirection(bulletDirection);
 
 	// Устанавливаем начальную скорость объекта
-	const shotVelocity = direction.multiplyScalar(shotSpeed);
-	cubeBulletBody.velocity.copy(new CANNON.Vec3(shotVelocity.x, shotVelocity.y, shotVelocity.z));
+	const { x, y, z } = bulletDirection.multiplyScalar(shotSpeed);
+	bulletBody.velocity.copy(new CANNON.Vec3(x, y, z));
 
-	scene.add(cubeBulletMesh);
-	world.addBody(cubeBulletBody);
-	objectsToUpdate.push({ mesh: cubeBulletMesh, body: cubeBulletBody });
+	scene.add(bulletMesh);
+	world.addBody(bulletBody);
+	objectsToUpdate.push({ mesh: bulletMesh, body: bulletBody });
+};
+debugObject.shutOrdinaryBullet = () => {
+	takeShot();
+};
+
+debugObject.shutBigBullet = () => {
+	takeShot('SPHERE', 200, -4);
 };
 // gui.add(debugObject, 'createHugeHighTower');
 cameraGUI.add(debugObject, 'CAMERA_STOP_MOVING');
@@ -433,18 +425,12 @@ objectsGUI.add(debugObject, 'CUBE_ROTATED_STACK_BIG');
 objectsGUI.add(debugObject, 'CUBE_ROTATED_STACK_MEDIUM');
 objectsGUI.add(debugObject, 'CUBE_LITTLE_TOWER');
 objectsGUI.add(debugObject, 'CUBE_BOX_BUILDING');
-objectsGUI.add(debugObject, 'CUBE_WALL_MEDIUM');
-objectsGUI.add(debugObject, 'CUBE_WALL_SMALL_6x10');
-objectsGUI.add(debugObject, 'CUBE_WALL_EXPLOSION_MEDIUM');
-objectsGUI.add(debugObject, 'CUBE_WALL_EXPLOSION_BIG');
-objectsGUI.add(debugObject, 'CUBE_WALL_SMALL_10x10');
-objectsGUI.add(debugObject, 'SPHERE_WALL_10x20');
-objectsGUI.add(debugObject, 'SPHERE_VERTICAL_LINE');
-objectsGUI.add(debugObject, 'SPHERE_ABOVE_CENTER');
+let btn_CUBE_WALL_MEDIUM = objectsGUI.add(debugObject, 'CUBE_WALL_MEDIUM');
+objectsGUI.add(debugObject, 'CUBE_WALL_EXPLOSION');
+let btn_CUBE_WALL_SMALL_20x20 = objectsGUI.add(debugObject, 'CUBE_WALL_SMALL_20x20');
+let btn_CUBE_WALL_SMALL_10x10 = objectsGUI.add(debugObject, 'CUBE_WALL_SMALL_10x10');
 objectsGUI.add(debugObject, 'SPHERE_RANDOM');
-worldGUI.add(debugObject, 'WORLD_SLEEP_FOR_1SEC');
 worldGUI.add(debugObject, 'WORLD_FREEZE');
-worldGUI.add(debugObject, 'WORLD_DENY_SLEEP');
 worldGUI.add(debugObject, 'WORLD_WAKE_UP_CALM');
 worldGUI.add(debugObject, 'WORLD_WAKE_UP_ACTIVE');
 sceneGUI.add(debugObject, 'SCENE_CLEAR_CENTER');
@@ -730,23 +716,21 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-const objectsToUpdate = [];
-
 /**
  * Utils
  */
 
 const commonCubeGeometry = new THREE.BoxGeometry(1, 1, 1);
 const commonMaterial = new THREE.MeshStandardMaterial({
-	metalness: 0.3,
+	// metalness: 0.3,
 	// metalness: 1,
-	roughness: 0.4,
+	// roughness: 0.4
 	// roughness: 0,
 	// envMap: environmentMapTexture,
 	wireframe: true
 	// envMapIntensity: 0.5
 });
-const createCube = (width = 0.8, height = 0.8, depth = 0.8, position) => {
+const createCube = (width = 1, height = 1, depth = 1, position) => {
 	// THREE JS mesh
 	const mesh = new THREE.Mesh(
 		// new THREE.BoxGeometry(width, height, depth),
@@ -880,47 +864,6 @@ const tick = () => {
 
 tick();
 
-// const handleKeyDown = (event) => {
-// 	if (event.key === 'P' || event.key === 'p') {
-// 		debugObject.WORLD_FREEZE();
-// 	}
-// 	if (event.key === 'O' || event.key === 'o') {
-// 		debugObject.WORLD_WAKE_UP_ACTIVE();
-// 	}
-// 	if (event.key === 'C' || event.key === 'c') {
-// 		debugObject.SCENE_CLEAR_ALL();
-// 	}
-// 	if (event.key === 'L' || event.key === 'l') {
-// 		debugObject.WORLD_WAKE_UP_CALM();
-// 	}
-// 	if (event.key === 'M' || event.key === 'm') {
-// 		debugObject.CAMERA_MOVE_SPIN();
-// 	}
-// 	if (event.key === 'N' || event.key === 'n') {
-// 		debugObject.CAMERA_STOP_MOVING();
-// 	}
-// 	if (event.key === 'B' || event.key === 'b') {
-// 		debugObject.CAMERA_MOVE_SPIN_CLOSE();
-// 	}
-// 	if (event.key === 'G' || event.key === 'g') {
-// 		debugObject.CUBE_ROTATED_STACK_BIG();
-// 	}
-// 	if (event.key === 'H' || event.key === 'h') {
-// 		debugObject.CUBE_ROTATED_STACK_MEDIUM();
-// 	}
-// 	if (event.key === 'J' || event.key === 'j') {
-// 		debugObject.CUBE_LITTLE_TOWER();
-// 	}
-// 	if (event.altKey && event.key === 'C') {
-// 		debugObject.SCENE_CLEAR_CENTER();
-// 	}
-// 	if (event.code === 'Space') {
-// 		debugObject.shutAtOnce();
-// 	}
-
-// 	document.body.focus();
-// };
-
 const keyFunctionMap = {
 	KEYP: debugObject.WORLD_FREEZE,
 	KEYO: debugObject.WORLD_WAKE_UP_ACTIVE,
@@ -933,26 +876,27 @@ const keyFunctionMap = {
 	KEYH: debugObject.CUBE_ROTATED_STACK_MEDIUM,
 	KEYJ: debugObject.CUBE_LITTLE_TOWER,
 	'Alt-KEYC': debugObject.SCENE_CLEAR_CENTER,
-	SPACE: debugObject.shutAtOnce
+	SPACE: debugObject.shutOrdinaryBullet,
+	'Ctrl-SPACE': debugObject.shutBigBullet
 };
 
 const handleKeyDown = (event) => {
+	document.body.focus();
 	const code = event.code.toUpperCase();
-	const combination = (event.altKey ? 'Alt-' : '') + code;
+	const combination = (event.altKey ? 'Alt-' : event.ctrlKey ? 'Ctrl-' : '') + code;
 
 	if (keyFunctionMap[combination]) {
 		keyFunctionMap[combination]();
-		document.body.focus();
 	}
 };
 
 document.body.setAttribute('tabindex', '1');
-window.document.addEventListener('keydown', handleKeyDown);
+window.document.addEventListener('keydown', debounce(handleKeyDown, 30));
 
-const shotBtn = document.querySelector('.shotBtn');
-shotBtn.addEventListener('click', debugObject.shutAtOnce);
+const shotCubeBtn = document.querySelector('.shotCube');
+shotCubeBtn.addEventListener('click', debugObject.shutOrdinaryBullet);
+const shotSphereBtn = document.querySelector('.shotSphere');
+shotSphereBtn.addEventListener('click', debugObject.shutBigBullet);
 
 debugObject.CUBE_WALL_SMALL_10x10();
-setTimeout(() => {
-	debugObject.WORLD_FREEZE();
-}, 400);
+debugObject.AWAIT_WORLD_FREEZE(100);
