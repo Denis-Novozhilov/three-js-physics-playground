@@ -880,45 +880,70 @@ const tick = () => {
 
 tick();
 
-const handleKeyDown = (event) => {
-	if (event.key === 'P' || event.key === 'p') {
-		debugObject.WORLD_FREEZE();
-	}
-	if (event.key === 'O' || event.key === 'o') {
-		debugObject.WORLD_WAKE_UP_ACTIVE();
-	}
-	if (event.key === 'C' || event.key === 'c') {
-		debugObject.SCENE_CLEAR_ALL();
-	}
-	if (event.key === 'L' || event.key === 'l') {
-		debugObject.WORLD_WAKE_UP_CALM();
-	}
-	if (event.key === 'M' || event.key === 'm') {
-		debugObject.CAMERA_MOVE_SPIN();
-	}
-	if (event.key === 'N' || event.key === 'n') {
-		debugObject.CAMERA_STOP_MOVING();
-	}
-	if (event.key === 'B' || event.key === 'b') {
-		debugObject.CAMERA_MOVE_SPIN_CLOSE();
-	}
-	if (event.key === 'G' || event.key === 'g') {
-		debugObject.CUBE_ROTATED_STACK_BIG();
-	}
-	if (event.key === 'H' || event.key === 'h') {
-		debugObject.CUBE_ROTATED_STACK_MEDIUM();
-	}
-	if (event.key === 'J' || event.key === 'j') {
-		debugObject.CUBE_LITTLE_TOWER();
-	}
-	if (event.altKey && event.key === 'C') {
-		debugObject.SCENE_CLEAR_CENTER();
-	}
-	if (event.code === 'Space') {
-		debugObject.shutAtOnce();
-	}
+// const handleKeyDown = (event) => {
+// 	if (event.key === 'P' || event.key === 'p') {
+// 		debugObject.WORLD_FREEZE();
+// 	}
+// 	if (event.key === 'O' || event.key === 'o') {
+// 		debugObject.WORLD_WAKE_UP_ACTIVE();
+// 	}
+// 	if (event.key === 'C' || event.key === 'c') {
+// 		debugObject.SCENE_CLEAR_ALL();
+// 	}
+// 	if (event.key === 'L' || event.key === 'l') {
+// 		debugObject.WORLD_WAKE_UP_CALM();
+// 	}
+// 	if (event.key === 'M' || event.key === 'm') {
+// 		debugObject.CAMERA_MOVE_SPIN();
+// 	}
+// 	if (event.key === 'N' || event.key === 'n') {
+// 		debugObject.CAMERA_STOP_MOVING();
+// 	}
+// 	if (event.key === 'B' || event.key === 'b') {
+// 		debugObject.CAMERA_MOVE_SPIN_CLOSE();
+// 	}
+// 	if (event.key === 'G' || event.key === 'g') {
+// 		debugObject.CUBE_ROTATED_STACK_BIG();
+// 	}
+// 	if (event.key === 'H' || event.key === 'h') {
+// 		debugObject.CUBE_ROTATED_STACK_MEDIUM();
+// 	}
+// 	if (event.key === 'J' || event.key === 'j') {
+// 		debugObject.CUBE_LITTLE_TOWER();
+// 	}
+// 	if (event.altKey && event.key === 'C') {
+// 		debugObject.SCENE_CLEAR_CENTER();
+// 	}
+// 	if (event.code === 'Space') {
+// 		debugObject.shutAtOnce();
+// 	}
 
-	document.body.focus();
+// 	document.body.focus();
+// };
+
+const keyFunctionMap = {
+	KEYP: debugObject.WORLD_FREEZE,
+	KEYO: debugObject.WORLD_WAKE_UP_ACTIVE,
+	KEYC: debugObject.SCENE_CLEAR_ALL,
+	KEYL: debugObject.WORLD_WAKE_UP_CALM,
+	KEYM: debugObject.CAMERA_MOVE_SPIN,
+	KEYN: debugObject.CAMERA_STOP_MOVING,
+	KEYB: debugObject.CAMERA_MOVE_SPIN_CLOSE,
+	KEYG: debugObject.CUBE_ROTATED_STACK_BIG,
+	KEYH: debugObject.CUBE_ROTATED_STACK_MEDIUM,
+	KEYJ: debugObject.CUBE_LITTLE_TOWER,
+	'Alt-KEYC': debugObject.SCENE_CLEAR_CENTER,
+	SPACE: debugObject.shutAtOnce
+};
+
+const handleKeyDown = (event) => {
+	const code = event.code.toUpperCase();
+	const combination = (event.altKey ? 'Alt-' : '') + code;
+
+	if (keyFunctionMap[combination]) {
+		keyFunctionMap[combination]();
+		document.body.focus();
+	}
 };
 
 document.body.setAttribute('tabindex', '1');
