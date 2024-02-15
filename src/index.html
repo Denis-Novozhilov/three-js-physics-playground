@@ -9,17 +9,22 @@
 	<body>
 		<canvas class="webgl"></canvas>
 		<dip class="mainTip">
-			press [SPACE] to shoot
+			push [SPACE] to shoot
 			<br />
-			press [C] to clear world
+			or [Ctrl+SPACE] ^_^
 			<br />
-			press [P] to Freeze object
+			push [C] to clear world
 			<br />
-			press [O] to UnFreeze object
+			push [P] to Freeze object
+			<br />
+			push [O] to UnFreeze object
 			<br />
 			Or use GuI controls →
 		</dip>
-		<button class="shotBtn">shot</button>
+		<div class="btnBox">
+			<button class="shotBtn shotCube">shot cube</button>
+			<button class="shotBtn shotSphere">shot sphere</button>
+		</div>
 		<script type="module" src="./script.js"></script>
 		<script type="module" src="./gui-inject.js"></script>
 		<script>
@@ -37,20 +42,22 @@
     [] rewrite with workers
     [] del all comments
     [] favicon
-    [v] vercel analitycs
-    [] git repository
-    [v] deploy
     [] resolve deploy img issue
     [] add workers for every separate functions
     [] add mobile buttons
     [] wireframe toggler agg to gui and mobile btns
-
+	
+	[] add locker to add more then 2 or 3 same objects at one time
 	[] Click body event, 
 	[] Bullet ball or sphere,
 	[] Catapulta,
 	[] Smoothing time, 
 	[] And gravity changer
 	[] Add different buildings
-
+	
 	[] check different browsers Opera, Chrome, Edge, IE, Mozilla, Safari desctop and mobile 
+    
+	[v] vercel analitycs
+    [v] git repository
+    [v] deploy
  -->
