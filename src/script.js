@@ -4,6 +4,7 @@ import GUI from 'lil-gui';
 import CANNON from 'cannon';
 import gsap from 'gsap';
 import { debounce } from './helpers/debounce';
+import { animateCameraSpiral1 } from './animateCameraSpiral1';
 
 /**
  * Debug
@@ -602,83 +603,13 @@ window.addEventListener('resize', () => {
  * Camera
  */
 // Base camera
-const camera = new THREE.PerspectiveCamera(95, sizes.width / sizes.height, 0.01, 2000);
+export const camera = new THREE.PerspectiveCamera(95, sizes.width / sizes.height, 0.01, 2000);
 // camera.position.set(-5, 70, 90);
 camera.position.set(-5, 10, 20);
 // camera.lookAt(new THREE.Vector3(10, 5, 0));
 scene.add(camera);
 
-const animationDuration = 5;
-
-function animateCameraSpiral4(factor) {
-	const closeFactor = factor ? factor : 1;
-	gsap.to(camera.position, {
-		duration: animationDuration,
-		x: (150 * 3) / closeFactor,
-		y: (-50 * 3) / closeFactor,
-		z: 200 / closeFactor,
-		ease: 'power1.inOut',
-		onComplete: function () {
-			animateCameraSpiral1(closeFactor);
-		}
-	});
-}
-function animateCameraSpiral3(factor) {
-	const closeFactor = factor ? factor : 1;
-	gsap.to(camera.position, {
-		duration: animationDuration,
-		x: 0,
-		y: (200 * 3) / closeFactor,
-		z: (-150 * 3) / closeFactor,
-		ease: 'power1.inOut',
-		// ease: 'power1.in',
-		// onComplete: animateCameraSpiral4(close)
-		onComplete: function () {
-			animateCameraSpiral4(closeFactor);
-		}
-	});
-}
-function animateCameraSpiral2(factor) {
-	const closeFactor = factor ? factor : 1;
-	gsap.to(camera.position, {
-		duration: animationDuration,
-		// x: -THREE.MathUtils.degToRad(0.85 * 360),
-		// y: THREE.MathUtils.degToRad(0.85 * 360),
-		// z: -THREE.MathUtils.degToRad(0.85 * 360),
-		x: (-100 * 3) / closeFactor,
-		y: (150 * 3) / closeFactor,
-		z: 0,
-		ease: 'power1.inOut',
-		// ease: 'power1.Out',
-		// ease: 'power1.in',
-		// onComplete: animateCameraSpiral3
-		onComplete: function () {
-			animateCameraSpiral3(closeFactor);
-		}
-	});
-}
-
-function animateCameraSpiral1(factor = 0) {
-	const spiralRadius = 15;
-	const closeFactor = factor ? factor : 1;
-	gsap.to(camera.position, {
-		duration: animationDuration,
-		// x: function (i) {
-		// 	return -(spiralRadius - (spiralRadius - 0.1)) * Math.cos(i * 0.1);
-		// },
-		// z: function (i) {
-		// 	return -(spiralRadius - (spiralRadius - 0.1)) * Math.cos(i * 0.1);
-		// },
-		x: -3,
-		y: (200 * 3) / closeFactor,
-		z: (150 * 3) / closeFactor,
-		ease: 'power1.inOut',
-		// onComplete: animateCameraSpiral2
-		onComplete: function () {
-			animateCameraSpiral2(closeFactor);
-		}
-	});
-}
+export const animationDuration = 5;
 
 // function animateCameraSpiralClose_x2() {
 // 	const spiralRadius = 15;
