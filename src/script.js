@@ -4,13 +4,14 @@ import GUI from 'lil-gui';
 import CANNON from 'cannon';
 import gsap from 'gsap';
 import { debounce } from './helpers/debounce';
-import { animateCameraSpiral1 } from './animateCameraSpiral1';
+import MotionPathPlugin from 'gsap/MotionPathPlugin';
+// import { animateCameraSpiral1 } from './animateCameraSpiral1';
 
 /**
  * Debug
  */
 const gui = new GUI({ width: 200 });
-const debugObject = {};
+const customStore = {};
 const cameraGUI = gui.addFolder('Camera');
 const sceneGUI = gui.addFolder('Scene');
 const objectsGUI = gui.addFolder('Objects');
@@ -27,7 +28,7 @@ const lockForSecond = (btn) => {
 	}, 1000);
 };
 
-debugObject.SCENE_CLEAR_CENTER = () => {
+customStore.SCENE_CLEAR_CENTER = () => {
 	document.body.focus();
 	for (let i = 0; i < 5; i++) {
 		objectsToUpdate.forEach((obj) => {
@@ -73,7 +74,7 @@ debugObject.SCENE_CLEAR_CENTER = () => {
 	// В конце убедитесь, что массив objectsToUpdate очищен от объектов в указанной области
 };
 
-debugObject.SCENE_CLEAR_ALL = () => {
+customStore.SCENE_CLEAR_ALL = () => {
 	document.body.focus();
 	objectsToUpdate.forEach((obj) => {
 		// Удаление из Three.js сцены
@@ -90,97 +91,113 @@ debugObject.SCENE_CLEAR_ALL = () => {
 			obj.mesh.material.dispose();
 		}
 
-		world.remove(obj.body);
+		if (obj.body) {
+			world.remove(obj.body);
+		}
 	});
 
 	// Очистка массива objectsToUpdate
 	objectsToUpdate.length = 0;
 	Store.objectsExisted.length = 0;
 };
-// debugObject.WORLD_SLEEP_FOR_1SEC = () => {
-// 	debugObject.WORLD_FREEZE();
-// 	setTimeout(() => {
-// 		world.allowSleep = false;
-// 	}, 1000);
-// 	// world.pause();
-// };
 
-debugObject.WORLD_FREEZE = () => {
+customStore.WORLD_FREEZE = () => {
 	document.body.focus();
 	world.allowSleep = true;
-	objectsToUpdate.forEach(({ body }) => {
-		if (!body.customData) {
-			body.customData = {
-				velocity: body.velocity.clone(),
-				angularVelocity: body.angularVelocity.clone(),
-				force: body.force.clone(),
-				torque: body.torque.clone()
-			};
+	objectsToUpdate.forEach((obj) => {
+		if (obj.body) {
+			const { body } = obj;
+
+			if (!body.customData) {
+				body.customData = {
+					velocity: body.velocity.clone(),
+					angularVelocity: body.angularVelocity.clone(),
+					force: body.force.clone(),
+					torque: body.torque.clone()
+				};
+			}
+			// body.sleepSpeedLimit = 10000;
+			body.sleep();
 		}
-		// body.sleepSpeedLimit = 10000;
-		body.sleep();
 	});
 	// world.pause();
 };
-debugObject.AWAIT_WORLD_FREEZE = (dely) => {
+customStore.AWAIT_WORLD_FREEZE = (dely) => {
 	setTimeout(() => {
-		debugObject.WORLD_FREEZE();
+		customStore.WORLD_FREEZE();
 	}, dely);
 };
-// debugObject.WORLD_DENY_SLEEP = () => {
-// 	world.allowSleep = false;
-// 	// world.unpause();
-// };
-debugObject.WORLD_WAKE_UP_CALM = () => {
+customStore.WORLD_WAKE_UP_CALM = () => {
 	document.body.focus();
 	world.allowSleep = false;
 	// world.wakeUpAll();
 	objectsToUpdate.forEach((obj) => {
-		obj.body.sleepSpeedLimit = 0.001;
-		obj.body.wakeUp();
+		if (obj.body) {
+			const { body } = obj;
+			body.sleepSpeedLimit = 0.001;
+			body.wakeUp();
+		}
 	});
 	// world.unpause();
 };
-debugObject.WORLD_WAKE_UP_ACTIVE = () => {
+customStore.WORLD_WAKE_UP_ACTIVE = () => {
 	document.body.focus();
 	world.allowSleep = false;
 	// world.wakeUpAll();
-	objectsToUpdate.forEach(({ body }) => {
-		if (body.customData) {
-			body.velocity.copy(body.customData.velocity);
-			body.angularVelocity.copy(body.customData.angularVelocity);
-			body.force.copy(body.customData.force);
-			body.torque.copy(body.customData.torque);
+	// objectsToUpdate.forEach(({ body }) => {
+	objectsToUpdate.forEach((obj) => {
+		if (obj.body) {
+			const { body } = obj;
+			if (body.customData) {
+				body.velocity.copy(body.customData.velocity);
+				body.angularVelocity.copy(body.customData.angularVelocity);
+				body.force.copy(body.customData.force);
+				body.torque.copy(body.customData.torque);
 
-			// Очищаем пользовательские данные
-			body.customData = null;
+				// Очищаем пользовательские данные
+				body.customData = null;
+			}
+			body.sleepSpeedLimit = 0.001;
+			body.wakeUp();
 		}
-		body.sleepSpeedLimit = 0.001;
-		body.wakeUp();
 	});
 	// world.unpause();
 };
 
-debugObject.CAMERA_STOP_MOVING = () => {
+customStore.CAMERA_STOP_MOVING = () => {
+	customStore.isCameraAnimating = false;
+	customStore.isCameraSpinningRound = false;
 	document.body.focus();
 	gsap.killTweensOf(camera.position);
 };
-debugObject.CAMERA_MOVE_SPIN = () => {
+customStore.CAMERA_MOVE_SPIN = () => {
 	document.body.focus();
-	debugObject.CAMERA_STOP_MOVING();
+	customStore.CAMERA_STOP_MOVING();
 	animateCameraSpiral1();
 };
-debugObject.CAMERA_MOVE_SPIN_CLOSE = () => {
+customStore.CAMERA_MOVE_SPIN_CLOSE = () => {
 	document.body.focus();
-	debugObject.CAMERA_STOP_MOVING();
+	customStore.CAMERA_STOP_MOVING();
 	animateCameraSpiral1(2);
 };
-// debugObject.SPHERE_VERTICAL_LINE = () => {
+customStore.CAMERA_MOVE_SPIN_CIRCLE = () => {
+	document.body.focus();
+	customStore.CAMERA_STOP_MOVING();
+
+	customStore.isCameraAnimating = true;
+	customStore.isCameraSpinningRound = true;
+};
+customStore.CAMERA_MOVE_SPIN_SQUARE = () => {
+	document.body.focus();
+	customStore.CAMERA_STOP_MOVING();
+	animateCameraSquare(4, 100);
+};
+// customStore.SPHERE_VERTICAL_LINE = () => {
 // 	for (let i = 0.5; i < 10.5; i++) {
 // 		createSphere(0.5, { x: 0, y: i, z: 0 });
 // 	}
 // };
-// debugObject.CUBE_WALL_EXPLOSION_BIG = () => {
+// customStore.CUBE_WALL_EXPLOSION_BIG = () => {
 // 	let count = 0;
 // 	let int = setInterval(() => {
 // 		if (count === 8) {
@@ -194,9 +211,9 @@ debugObject.CAMERA_MOVE_SPIN_CLOSE = () => {
 // 		}
 // 	}, 50);
 // };
-debugObject.CUBE_WALL_MEDIUM = () => {
+customStore.CUBE_WALL_MEDIUM = () => {
 	document.body.focus();
-	debugObject.SCENE_CLEAR_ALL();
+	customStore.SCENE_CLEAR_ALL();
 
 	for (let k = -1; k < 0; k++) {
 		for (let i = -15; i < 15; i++) {
@@ -205,11 +222,11 @@ debugObject.CUBE_WALL_MEDIUM = () => {
 			}
 		}
 	}
-	debugObject.AWAIT_WORLD_FREEZE(100);
+	customStore.AWAIT_WORLD_FREEZE(100);
 };
-debugObject.CUBE_WALL_EXPLOSION = () => {
+customStore.CUBE_WALL_EXPLOSION = () => {
 	document.body.focus();
-	debugObject.SCENE_CLEAR_ALL();
+	customStore.SCENE_CLEAR_ALL();
 	let count = 0;
 	let int = setInterval(() => {
 		if (count === 3) {
@@ -225,39 +242,9 @@ debugObject.CUBE_WALL_EXPLOSION = () => {
 	gui.close();
 };
 
-// debugObject.createHugeHighTower = () => {
-// 	document.body.focus();
-// 	debugObject.SCENE_CLEAR_ALL();
-// 	const count = 5;
-// 	// for (let k = -1; k < 1; k++) {
-// 	for (let i = -count / 2; i < count / 2; i++) {
-// 		for (let k = -count / 2; k < count / 2; k++) {
-// 			// let firstFlag = true;
-// 			// let defDelta = count / 10000;
-// 			// let defDelta = 1;
-// 			for (let j = 0; j < count * 3; j++) {
-// 				// createCube(0.998, 0.998, 0.998, { x: i, y: j, z: k });
-// 				// createCube(0.998, 0.998, 0.998, { x: 0, y: j, z: 0 });
-// 				// if (firstFlag) {
-// 				// firstFlag = false;
-// 				createCube(1, 1, 1, { x: i, y: j + 0.5, z: k });
-// 				// defDelta += defDelta;
-// 				// } else {
-// 				// createCube(1, 1, 1, { x: 0, y: j + 2.6, z: 0 });
-// 			}
-// 		}
-// 	}
-// 	// }
-// 	// for (let i = -5; i < 5; i++) {
-// 	// 	for (let j = 11; j < 21; j++) {
-// 	// 		createCube(0.5, 0.5, { x: i, y: j, z: 0 });
-// 	// 	}
-// 	// }
-// 	debugObject.AWAIT_WORLD_FREEZE(100);
-// };
-debugObject.CUBE_TOWER_TO_THE_MOON = () => {
+customStore.CUBE_TOWER_TO_THE_MOON = () => {
 	document.body.focus();
-	debugObject.SCENE_CLEAR_ALL();
+	customStore.SCENE_CLEAR_ALL();
 	const count = 10;
 	for (let i = -count / 16; i < count / 16; i++) {
 		for (let k = -count / 16; k < count / 16; k++) {
@@ -266,11 +253,11 @@ debugObject.CUBE_TOWER_TO_THE_MOON = () => {
 			}
 		}
 	}
-	debugObject.AWAIT_WORLD_FREEZE(100);
+	customStore.AWAIT_WORLD_FREEZE(100);
 };
-debugObject.CUBE_ROTATED_STACK_BIG = () => {
+customStore.CUBE_ROTATED_STACK_BIG = () => {
 	document.body.focus();
-	debugObject.SCENE_CLEAR_ALL();
+	customStore.SCENE_CLEAR_ALL();
 	const count_1 = 10;
 	const factor = 8;
 
@@ -281,10 +268,10 @@ debugObject.CUBE_ROTATED_STACK_BIG = () => {
 			z: 0
 		});
 	}
-	debugObject.AWAIT_WORLD_FREEZE(100);
+	customStore.AWAIT_WORLD_FREEZE(100);
 };
-debugObject.CUBE_ROTATED_STACK_MEDIUM = () => {
-	debugObject.SCENE_CLEAR_ALL();
+customStore.CUBE_ROTATED_STACK_MEDIUM = () => {
+	customStore.SCENE_CLEAR_ALL();
 	const count_1 = 8;
 	const count_2 = 6;
 	const count_3 = 4;
@@ -299,11 +286,11 @@ debugObject.CUBE_ROTATED_STACK_MEDIUM = () => {
 			z: 0
 		});
 	}
-	debugObject.AWAIT_WORLD_FREEZE(100);
+	customStore.AWAIT_WORLD_FREEZE(100);
 };
-debugObject.CUBE_LITTLE_TOWER = () => {
+customStore.CUBE_LITTLE_TOWER = () => {
 	document.body.focus();
-	debugObject.SCENE_CLEAR_ALL();
+	customStore.SCENE_CLEAR_ALL();
 	for (let k = -2; k < 2; k++) {
 		for (let i = -2; i < 2; i++) {
 			for (let j = 0.5; j < 26.5; j++) {
@@ -311,58 +298,45 @@ debugObject.CUBE_LITTLE_TOWER = () => {
 			}
 		}
 	}
-	debugObject.AWAIT_WORLD_FREEZE(100);
+	customStore.AWAIT_WORLD_FREEZE(100);
 };
-debugObject.CUBE_BOX_BUILDING = () => {
+customStore.CUBE_BOX_BUILDING = () => {
 	document.body.focus();
-	debugObject.SCENE_CLEAR_ALL();
-	for (let k = -5; k < 5; k++) {
-		for (let i = -5; i < 5; i++) {
-			for (let j = 0.5; j < 6.5; j++) {
+	customStore.SCENE_CLEAR_ALL();
+	for (let k = -3; k < 3; k++) {
+		for (let i = -3; i < 3; i++) {
+			for (let j = 0.5; j < 5.5; j++) {
 				createCube(0.988, 0.988, 0.988, { x: i, y: j, z: k });
 			}
 		}
 	}
-	debugObject.AWAIT_WORLD_FREEZE(100);
+	customStore.AWAIT_WORLD_FREEZE(100);
 };
-// debugObject.CUBE_WALL_SMALL_6x10 = () => {
-// 	// for (let k = -5; k < 5; k++) {
-// 	for (let i = -5; i < 5; i++) {
-// 		for (let j = 0.5; j < 6.5; j++) {
-// 			createCube(0.988, 0.988, 0.988, { x: i, y: j, z: 0 });
-// 		}
-// 	}
-// 	// }
-// 	// for (let i = -5; i < 5; i++) {
-// 	// 	for (let j = 11; j < 21; j++) {
-// 	// 		createCube(0.5, 0.5, { x: i, y: j, z: 0 });
-// 	// 	}
-// 	// }
-// };
-debugObject.CUBE_WALL_SMALL_20x20 = () => {
+
+customStore.CUBE_WALL_SMALL_20x20 = () => {
 	document.body.focus();
-	debugObject.SCENE_CLEAR_ALL();
+	customStore.SCENE_CLEAR_ALL();
 
 	for (let i = -10; i < 10; i++) {
 		for (let j = 1; j < 21; j++) {
 			createCube(1, 1, 1, { x: i, y: j, z: 0 });
 		}
 	}
-	debugObject.AWAIT_WORLD_FREEZE(100);
+	customStore.AWAIT_WORLD_FREEZE(100);
 };
-debugObject.CUBE_WALL_SMALL_10x10 = () => {
+customStore.CUBE_WALL_SMALL_10x10 = () => {
 	document.body.focus();
-	debugObject.SCENE_CLEAR_ALL();
+	customStore.SCENE_CLEAR_ALL();
 
 	for (let i = -5; i < 5; i++) {
 		for (let j = 0.5; j < 10 + 0.5; j++) {
 			createCube(1, 1, 1, { x: i, y: j, z: 0 });
 		}
 	}
-	debugObject.AWAIT_WORLD_FREEZE(100);
+	customStore.AWAIT_WORLD_FREEZE(100);
 };
 
-debugObject.SPHERE_RANDOM = () => {
+customStore.SPHERE_RANDOM = () => {
 	document.body.focus();
 	createSphere(Math.random() * 0.5 * 5 + 0.5, {
 		x: (Math.random() - 0.5) * 10,
@@ -410,32 +384,122 @@ const takeShot = (shape = 'CUBE', shotSpeed = 100, correctionY = -2) => {
 	world.addBody(bulletBody);
 	objectsToUpdate.push({ mesh: bulletMesh, body: bulletBody });
 };
-debugObject.shutOrdinaryBullet = () => {
+
+const throwVisibleRay = (clearTime = 400) => {
+	let lineMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00 });
+
+	let startVector = new THREE.Vector3(
+		camera.position.x + 0.5,
+		camera.position.y - 0.5,
+		camera.position.z
+	);
+	let endVector = new THREE.Vector3(0, 0, 0);
+
+	// Определяем направление камеры и устанавливаем конечный вектор в этом направлении
+	let cameraDirection = new THREE.Vector3(0, 0, 0);
+	camera.getWorldDirection(cameraDirection);
+	endVector.copy(startVector).add(cameraDirection.multiplyScalar(2000)); // 2000 - длина луча
+
+	let linePoints = [];
+	linePoints.push(startVector, endVector);
+
+	// Create Tube Geometry
+	let tubeGeometry = new THREE.TubeGeometry(
+		new THREE.CatmullRomCurve3(linePoints),
+		512, // path segments
+		0.5, // THICKNESS
+		8, //Roundness of Tube
+		true //closed
+	);
+
+	let line = new THREE.Line(tubeGeometry, lineMaterial);
+	scene.add(line);
+
+	setTimeout(() => {
+		scene.remove(line);
+	}, clearTime);
+};
+const castScaleUpRay = () => {
+	customStore.raycaster = new THREE.Raycaster();
+	customStore.raycaster.setFromCamera(new THREE.Vector3(0, 0.025, 0), camera);
+
+	const meshes = objectsToUpdate.map((obj) => obj.mesh);
+	const intersects = customStore.raycaster.intersectObjects(meshes);
+
+	throwVisibleRay();
+
+	if (intersects.length) {
+		for (const intersect of intersects) {
+			let multiplyScaleFactor = 1.8;
+
+			if (
+				intersect.object.scale.x <= 3 ||
+				(intersect.object.scale.x >= 5 && intersect.object.scale.x <= 100)
+			) {
+				intersect.object.scale.multiplyScalar(multiplyScaleFactor);
+
+				objectsToUpdate.forEach((obj) => {
+					if (obj.body && obj.mesh.uuid === intersect.object.uuid) {
+						// Изменяем размер текущей формы с сохранением пропорций
+						if (obj.body.shapes.length > 0 && obj.body.shapes[0] instanceof CANNON.Box) {
+							// Умножаем текущие половины размеров на масштабный коэффициент
+							obj.body.shapes[0].halfExtents.x *= multiplyScaleFactor;
+							obj.body.shapes[0].halfExtents.y *= multiplyScaleFactor;
+							obj.body.shapes[0].halfExtents.z *= multiplyScaleFactor;
+
+							// Обновляем представление полиэдра
+							obj.body.shapes[0].updateConvexPolyhedronRepresentation();
+
+							// Также масштабируем массу
+							obj.body.mass *= Math.pow(multiplyScaleFactor * 0.62, 3);
+						} else if (obj.body.shapes.length > 0 && obj.body.shapes[0] instanceof CANNON.Sphere) {
+							// Умножаем текущий радиус на масштабный коэффициент
+							obj.body.shapes[0].radius *= multiplyScaleFactor;
+
+							// Также масштабируем массу
+							obj.body.mass *= Math.pow(multiplyScaleFactor * 0.62, 3);
+						}
+
+						obj.body.wakeUp();
+					}
+				});
+			}
+		}
+	}
+};
+
+customStore.shutOrdinaryBullet = () => {
 	takeShot();
 };
 
-debugObject.shutBigBullet = () => {
+customStore.shutBigBullet = () => {
 	takeShot('SPHERE', 200, -4);
 };
-// gui.add(debugObject, 'createHugeHighTower');
-cameraGUI.add(debugObject, 'CAMERA_STOP_MOVING');
-cameraGUI.add(debugObject, 'CAMERA_MOVE_SPIN');
-cameraGUI.add(debugObject, 'CAMERA_MOVE_SPIN_CLOSE');
-objectsGUI.add(debugObject, 'CUBE_TOWER_TO_THE_MOON');
-objectsGUI.add(debugObject, 'CUBE_ROTATED_STACK_BIG');
-objectsGUI.add(debugObject, 'CUBE_ROTATED_STACK_MEDIUM');
-objectsGUI.add(debugObject, 'CUBE_LITTLE_TOWER');
-objectsGUI.add(debugObject, 'CUBE_BOX_BUILDING');
-let btn_CUBE_WALL_MEDIUM = objectsGUI.add(debugObject, 'CUBE_WALL_MEDIUM');
-objectsGUI.add(debugObject, 'CUBE_WALL_EXPLOSION');
-let btn_CUBE_WALL_SMALL_20x20 = objectsGUI.add(debugObject, 'CUBE_WALL_SMALL_20x20');
-let btn_CUBE_WALL_SMALL_10x10 = objectsGUI.add(debugObject, 'CUBE_WALL_SMALL_10x10');
-objectsGUI.add(debugObject, 'SPHERE_RANDOM');
-worldGUI.add(debugObject, 'WORLD_FREEZE');
-worldGUI.add(debugObject, 'WORLD_WAKE_UP_CALM');
-worldGUI.add(debugObject, 'WORLD_WAKE_UP_ACTIVE');
-sceneGUI.add(debugObject, 'SCENE_CLEAR_CENTER');
-sceneGUI.add(debugObject, 'SCENE_CLEAR_ALL');
+
+customStore.shutLaser = () => {
+	castScaleUpRay();
+};
+// gui.add(customStore, 'createHugeHighTower');
+cameraGUI.add(customStore, 'CAMERA_STOP_MOVING');
+cameraGUI.add(customStore, 'CAMERA_MOVE_SPIN');
+cameraGUI.add(customStore, 'CAMERA_MOVE_SPIN_CLOSE');
+cameraGUI.add(customStore, 'CAMERA_MOVE_SPIN_CIRCLE');
+cameraGUI.add(customStore, 'CAMERA_MOVE_SPIN_SQUARE');
+objectsGUI.add(customStore, 'CUBE_TOWER_TO_THE_MOON');
+objectsGUI.add(customStore, 'CUBE_ROTATED_STACK_BIG');
+objectsGUI.add(customStore, 'CUBE_ROTATED_STACK_MEDIUM');
+objectsGUI.add(customStore, 'CUBE_LITTLE_TOWER');
+objectsGUI.add(customStore, 'CUBE_BOX_BUILDING');
+let btn_CUBE_WALL_MEDIUM = objectsGUI.add(customStore, 'CUBE_WALL_MEDIUM');
+objectsGUI.add(customStore, 'CUBE_WALL_EXPLOSION');
+let btn_CUBE_WALL_SMALL_20x20 = objectsGUI.add(customStore, 'CUBE_WALL_SMALL_20x20');
+let btn_CUBE_WALL_SMALL_10x10 = objectsGUI.add(customStore, 'CUBE_WALL_SMALL_10x10');
+objectsGUI.add(customStore, 'SPHERE_RANDOM');
+worldGUI.add(customStore, 'WORLD_FREEZE');
+worldGUI.add(customStore, 'WORLD_WAKE_UP_CALM');
+worldGUI.add(customStore, 'WORLD_WAKE_UP_ACTIVE');
+sceneGUI.add(customStore, 'SCENE_CLEAR_CENTER');
+sceneGUI.add(customStore, 'SCENE_CLEAR_ALL');
 
 /**
  * Base
@@ -547,8 +611,8 @@ const floorMaterial2 = new THREE.ShaderMaterial({
   `
 });
 
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), floorMaterial2);
-gridTexture.repeat.set(50, 50);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), floorMaterial2);
+gridTexture.repeat.set(100, 100);
 gridTexture.wrapS = THREE.RepeatWrapping;
 gridTexture.wrapT = THREE.RepeatWrapping;
 
@@ -603,38 +667,130 @@ window.addEventListener('resize', () => {
  * Camera
  */
 // Base camera
-export const camera = new THREE.PerspectiveCamera(95, sizes.width / sizes.height, 0.01, 2000);
+export const camera = new THREE.PerspectiveCamera(95, sizes.width / sizes.height, 0.01, 5000);
 // camera.position.set(-5, 70, 90);
 camera.position.set(-5, 10, 20);
 // camera.lookAt(new THREE.Vector3(10, 5, 0));
 scene.add(camera);
 
-export const animationDuration = 5;
+const animationDuration = 5;
 
-// function animateCameraSpiralClose_x2() {
-// 	const spiralRadius = 15;
+function animateCameraSpiral4(factor) {
+	const closeFactor = factor ? factor : 1;
+	gsap.to(camera.position, {
+		duration: animationDuration,
+		x: (150 * 3) / closeFactor,
+		y: (-50 * 3) / closeFactor,
+		z: 200 / closeFactor,
+		ease: 'power1.inOut',
+		onComplete: function () {
+			animateCameraSpiral1(closeFactor);
+		}
+	});
+}
+function animateCameraSpiral3(factor) {
+	const closeFactor = factor ? factor : 1;
+	gsap.to(camera.position, {
+		duration: animationDuration,
+		x: 0,
+		y: (200 * 3) / closeFactor,
+		z: (-150 * 3) / closeFactor,
+		ease: 'power1.inOut',
+		onComplete: function () {
+			animateCameraSpiral4(closeFactor);
+		}
+	});
+}
+function animateCameraSpiral2(factor) {
+	const closeFactor = factor ? factor : 1;
+	gsap.to(camera.position, {
+		duration: animationDuration,
+		x: (-100 * 3) / closeFactor,
+		y: (150 * 3) / closeFactor,
+		z: 0,
+		ease: 'power1.inOut',
+		onComplete: function () {
+			animateCameraSpiral3(closeFactor);
+		}
+	});
+}
+export function animateCameraSpiral1(factor = 0) {
+	customStore.isCameraAnimating = true;
+	const spiralRadius = 15;
+	const closeFactor = factor ? factor : 1;
+	gsap.to(camera.position, {
+		duration: animationDuration,
+		x: -3,
+		y: (200 * 3) / closeFactor,
+		z: (150 * 3) / closeFactor,
+		ease: 'power1.inOut',
+		onComplete: function () {
+			animateCameraSpiral2(closeFactor);
+		}
+	});
+}
 
-// 	gsap.to(camera.position, {
-// 		duration: animationDuration,
-// 		// x: function (i) {
-// 		// 	return -(spiralRadius - (spiralRadius - 0.1)) * Math.cos(i * 0.1);
-// 		// },
-// 		// z: function (i) {
-// 		// 	return -(spiralRadius - (spiralRadius - 0.1)) * Math.cos(i * 0.1);
-// 		// },
-// 		x: -10,
-// 		y: (200 * 3) / 80,
-// 		z: (150 * 3) / 80,
-// 		ease: 'power1.inOut',
-// 		onComplete: animateCameraSpiral2
-// 	});
-// }
-// start camera animation
-// animateCameraSpiral1();
+const animateCameraSquare4 = (duration = 1, spiralRadius = 10) => {
+	customStore.isCameraAnimating = true;
+	gsap.to(camera.position, {
+		duration: duration,
+		z: -spiralRadius,
+		ease: 'power1.inOut',
+		onComplete: function () {
+			animateCameraSquare(duration, spiralRadius);
+		}
+	});
+};
+const animateCameraSquare3 = (duration = 1, spiralRadius = 10) => {
+	customStore.isCameraAnimating = true;
+	gsap.to(camera.position, {
+		duration: duration,
+		x: -spiralRadius,
+		ease: 'power1.inOut',
+		onComplete: function () {
+			animateCameraSquare4(duration, spiralRadius);
+		}
+	});
+};
+const animateCameraSquare2 = (duration = 1, spiralRadius = 10) => {
+	customStore.isCameraAnimating = true;
+	gsap.to(camera.position, {
+		duration: duration,
+		z: spiralRadius,
+		ease: 'power1.inOut',
+		onComplete: function () {
+			animateCameraSquare3(duration, spiralRadius);
+		}
+	});
+};
+let camX = 0;
+let camZ = 0;
+const animateCameraSquare = (duration = 1, spiralRadius = 10) => {
+	customStore.isCameraAnimating = true;
+	gsap.to(camera.position, {
+		duration: duration,
+		x: spiralRadius,
+		ease: 'power1.inOut',
+		onComplete: function () {
+			animateCameraSquare2(duration, spiralRadius);
+		}
+	});
+};
 
 // Controls
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
+
+// Минимальное значение y координаты для камеры
+const minY = 1.98;
+const handlerCameraPosition = () => {
+	if (camera.position.y <= minY) {
+		camera.position.setY(minY);
+	}
+	controls.update();
+};
+controls.addEventListener('change', debounce(handlerCameraPosition, 0));
+// controls.addEventListener('change', handlerCameraPosition);
 
 /**
  * Renderer
@@ -654,11 +810,12 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 const commonCubeGeometry = new THREE.BoxGeometry(1, 1, 1);
 const commonMaterial = new THREE.MeshStandardMaterial({
 	// metalness: 0.3,
-	// metalness: 1,
-	// roughness: 0.4
+	// metalness: 0.4,
+	// roughness: 0.0,
 	// roughness: 0,
 	// envMap: environmentMapTexture,
 	wireframe: true
+	// wireframe: false
 	// envMapIntensity: 0.5
 });
 const createCube = (width = 1, height = 1, depth = 1, position) => {
@@ -703,7 +860,6 @@ const createCube = (width = 1, height = 1, depth = 1, position) => {
 };
 let rotateYDegree = 1;
 const createRotatedCube = (width = 1, height = 1, depth = 1, position) => {
-	console.log(`rotateYDegree`);
 	// THREE JS mesh
 	const mesh = new THREE.Mesh(
 		// new THREE.BoxGeometry(width, height, depth),
@@ -781,11 +937,37 @@ const tick = () => {
 	world.step(1 / 60, deltaTime, 3);
 
 	for (const object of objectsToUpdate) {
-		object.mesh.position.copy(object.body.position);
-		object.mesh.quaternion.copy(object.body.quaternion);
+		if (object.body) {
+			object.mesh.position.copy(object.body.position);
+			object.mesh.quaternion.copy(object.body.quaternion);
+		}
 	}
 
-	floor.position.copy({ ...floorBody.position, y: floorBody.position.y - 0.08 });
+	if (customStore.isCameraAnimating && customStore.isCameraSpinningRound) {
+		let radius = null;
+		const distance = camera.position.distanceTo(new THREE.Vector3(0, 0, 0));
+		if (distance >= 5 && distance < 20) {
+			radius = 18;
+		} else if (distance >= 20 && distance < 60) {
+			radius = 55;
+		} else if (distance >= 60 && distance < 140) {
+			radius = 115;
+		} else if (distance >= 140 && distance < 350) {
+			radius = 330;
+		} else if (distance >= 350 && distance < 600) {
+			radius = 580;
+		} else if (distance >= 600 && distance < 900) {
+			radius = 880;
+		} else if (distance >= 800) {
+			radius = 1200;
+		}
+		const theta = Date.now() * 0.0001;
+
+		camera.position.x = +radius * Math.cos(theta);
+		camera.position.z = radius * Math.sin(theta);
+	}
+
+	floor.position.copy({ ...floorBody.position, y: floorBody.position.y - 0.1 });
 	controls.update();
 
 	// Render
@@ -796,38 +978,64 @@ const tick = () => {
 tick();
 
 const keyFunctionMap = {
-	KEYP: debugObject.WORLD_FREEZE,
-	KEYO: debugObject.WORLD_WAKE_UP_ACTIVE,
-	KEYC: debugObject.SCENE_CLEAR_ALL,
-	KEYL: debugObject.WORLD_WAKE_UP_CALM,
-	KEYM: debugObject.CAMERA_MOVE_SPIN,
-	KEYN: debugObject.CAMERA_STOP_MOVING,
-	KEYB: debugObject.CAMERA_MOVE_SPIN_CLOSE,
-	KEYG: debugObject.CUBE_ROTATED_STACK_BIG,
-	KEYH: debugObject.CUBE_ROTATED_STACK_MEDIUM,
-	KEYJ: debugObject.CUBE_LITTLE_TOWER,
-	'Alt-KEYC': debugObject.SCENE_CLEAR_CENTER,
-	SPACE: debugObject.shutOrdinaryBullet,
-	'Ctrl-SPACE': debugObject.shutBigBullet
+	KEYP: customStore.WORLD_FREEZE,
+	KEYO: customStore.WORLD_WAKE_UP_ACTIVE,
+	KEYC: customStore.SCENE_CLEAR_ALL,
+	KEYL: customStore.WORLD_WAKE_UP_CALM,
+	KEYM: customStore.CAMERA_MOVE_SPIN,
+	KEYN: customStore.CAMERA_STOP_MOVING,
+	KEYB: customStore.CAMERA_MOVE_SPIN_CLOSE,
+	KEYG: customStore.CUBE_ROTATED_STACK_BIG,
+	KEYH: customStore.CUBE_ROTATED_STACK_MEDIUM,
+	KEYJ: customStore.CUBE_LITTLE_TOWER,
+	'Alt-KEYC': customStore.SCENE_CLEAR_CENTER,
+	SPACE: customStore.shutOrdinaryBullet,
+	'Ctrl-SPACE': customStore.shutBigBullet,
+	'Shift-SPACE': customStore.shutLaser
 };
 
 const handleKeyDown = (event) => {
 	document.body.focus();
 	const code = event.code.toUpperCase();
-	const combination = (event.altKey ? 'Alt-' : event.ctrlKey ? 'Ctrl-' : '') + code;
+	const combination =
+		(event.altKey ? 'Alt-' : event.ctrlKey ? 'Ctrl-' : event.shiftKey ? 'Shift-' : '') + code;
 
 	if (keyFunctionMap[combination]) {
 		keyFunctionMap[combination]();
 	}
 };
 
+// Prevent camera animation if user disturb camera position ↓
+const handleMouseDownOrTouchStart = () => {
+	customStore.isDragging = true;
+};
+document.addEventListener('mousedown', handleMouseDownOrTouchStart);
+document.addEventListener('touchstart', handleMouseDownOrTouchStart);
+
+const handleMouseMoveOrTouchMove = () => {
+	if (customStore?.isDragging && customStore?.isCameraAnimating) {
+		customStore.CAMERA_STOP_MOVING();
+	}
+};
+document.addEventListener('mousemove', handleMouseMoveOrTouchMove);
+document.addEventListener('touchmove', handleMouseMoveOrTouchMove);
+
+const handleMouseUpOrTouchEnd = () => {
+	customStore.isDragging = false;
+};
+document.addEventListener('mouseup', handleMouseUpOrTouchEnd);
+document.addEventListener('touchend', handleMouseUpOrTouchEnd);
+// Prevent camera animation if user disturb camera position ↑
+
 document.body.setAttribute('tabindex', '1');
 window.document.addEventListener('keydown', debounce(handleKeyDown, 30));
 
 const shotCubeBtn = document.querySelector('.shotCube');
-shotCubeBtn.addEventListener('click', debugObject.shutOrdinaryBullet);
 const shotSphereBtn = document.querySelector('.shotSphere');
-shotSphereBtn.addEventListener('click', debugObject.shutBigBullet);
+const shotLaserBtn = document.querySelector('.shotLaser');
+shotCubeBtn.addEventListener('click', customStore.shutOrdinaryBullet);
+shotSphereBtn.addEventListener('click', customStore.shutBigBullet);
+shotLaserBtn.addEventListener('click', customStore.shutLaser);
 
-debugObject.CUBE_WALL_SMALL_10x10();
-debugObject.AWAIT_WORLD_FREEZE(100);
+customStore.CUBE_WALL_SMALL_10x10();
+customStore.AWAIT_WORLD_FREEZE(100);
